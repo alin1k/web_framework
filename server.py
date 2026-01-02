@@ -1,7 +1,9 @@
 import socket
+import os
 
 HOST = "127.0.0.1"
 PORT = 8080
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def make_headers(headers_dict):
     return  "\n".join([f"{key}: {headers_dict[key]}" for key in headers_dict])
@@ -21,7 +23,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     while True:
         conn, adr = s.accept()
         with conn:
-            print("Connected by", adr, "\n")
             data = conn.recv(1024)
             if not data: 
                 continue
@@ -32,10 +33,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             req_start_line = data.split("\n")[0].split(" ")
 
             req_method = req_start_line[0]
-            req_path = req_start_line[1][1:]
+            req_path = req_start_line[1]
+           
+            file_path = os.path.join(ROOT_DIR, "static", req_path.lstrip("/"))
             
             try:
-                with open(req_path, "r") as file:
+                with open(file_path, "r") as file:
                     file_data = file.read()
                     headers = {
                         "Content-Type": "text/html",
@@ -44,7 +47,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     response = make_http_response(headers, file_data, "200 OK")
                     conn.sendall(response)
             except FileNotFoundError:
-                response = make_http_response({}, "Not found", "404 NOT_FOUND")
+                response = make_http_response({}, "Not found", "Not Found")
                 conn.sendall(response)
 
 
