@@ -29,6 +29,12 @@ def get_mime_type(file_name):
 
     return type_map[file_extension]
 
+def get_request_headers(headers_string):
+    headers = headers_string.split("\r\n")  
+    headers_dict = {header.split(": ", 1)[0]: header.split(": ", 1)[1] for header in headers}
+     
+    return headers_string
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((HOST,PORT))
@@ -40,15 +46,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         with conn:
             data = conn.recv(1024)
             if not data: 
-                continue
-            
+                continue   
+    
             data = data.decode("utf-8")
             print(data)
 
-            req_start_line = data.split("\n")[0].split(" ")
+            req_start_line = data.split("\r\n")[0].split(" ")
 
             req_method = req_start_line[0]
             req_path = req_start_line[1]
+            req_headers = get_request_headers(data.split("\r\n", 1)[1].split("\r\n\r\n")[0])
            
             file_path = os.path.join(ROOT_DIR, "static", req_path.lstrip("/"))
             
@@ -65,5 +72,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     response = make_http_response(headers, file_data, "200 OK")
                     conn.sendall(response)
             except FileNotFoundError:
-                response = make_http_response({}, "Not found", "Not Found")
+                response = make_http_response({}, "Not found", "404 Not Found")
                 conn.sendall(response)
