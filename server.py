@@ -1,5 +1,6 @@
 import socket
 import os
+from datetime import datetime, timezone
 
 HOST = "127.0.0.1"
 PORT = 8080
@@ -13,6 +14,20 @@ def make_http_response(headers, body, status_code):
     headers = make_headers(headers)
     
     return f"{start_line}\n{headers}\n\n{body}".encode("utf-8")
+
+def get_mime_type(file_name):
+    type_map = {
+        "html": "text/html",
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "css": "text/css",
+        "js": "text/javascript"
+    }
+
+    file_extension = file_name.split(".")[1]
+
+    return type_map[file_extension]
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -40,8 +55,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
                 with open(file_path, "r") as file:
                     file_data = file.read()
+                    mime_type = get_mime_type(file.name)
+                    response_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
                     headers = {
-                        "Content-Type": "text/html",
+                        "Date": response_date,
+                        "Content-Type": mime_type, 
                         "Content-Length": len(file_data)
                     }   
                     response = make_http_response(headers, file_data, "200 OK")
@@ -49,5 +67,3 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             except FileNotFoundError:
                 response = make_http_response({}, "Not found", "Not Found")
                 conn.sendall(response)
-
-
