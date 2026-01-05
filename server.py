@@ -35,6 +35,26 @@ def get_request_headers(headers_string):
      
     return headers_string
 
+path_map = {}
+
+def route(path, methods=["GET"]):
+    def route_decorator(route_func):
+        def route_wrapper(*args, **kwargs):
+            return route_func(*args, **kwargs)
+
+        path_map.update({
+            path: {method: route_wrapper for method in methods}
+        })
+        
+        return route_wrapper
+    return route_decorator
+
+@route(path="/test", methods=["GET"])
+def test(*args, **kwargs):
+    return make_http_response({}, "Merge!!! URAAa", "200 OK")
+
+
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((HOST,PORT))
@@ -55,8 +75,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
             req_method = req_start_line[0]
             req_path = req_start_line[1]
-            req_headers = get_request_headers(data.split("\r\n", 1)[1].split("\r\n\r\n")[0])
-           
+            req_headers = get_request_headers(data.split("\r\n", 1)[1].split("\r\n\r\n")[0])            
+
+            if path_map.get(req_path, False):
+                response = path_map[req_path][req_method]()
+                conn.sendall(response)
+                continue
+
             file_path = os.path.join(ROOT_DIR, "static", req_path.lstrip("/"))
             
             try:
