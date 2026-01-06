@@ -5,8 +5,11 @@ from datetime import datetime, timezone
 HOST = "127.0.0.1"
 PORT = 8080
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+path_map = {}
 
 def make_headers(headers_dict):
+    response_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+    headers_dict.setdefault("Date", response_date)
     return "".join([f"{key}: {headers_dict[key]}\r\n" for key in headers_dict])
 
 def make_http_response(headers, body, status_code):
@@ -34,8 +37,6 @@ def get_request_headers(headers_string):
     headers_dict = {header.split(": ", 1)[0]: header.split(": ", 1)[1] for header in headers}
      
     return headers_string
-
-path_map = {}
 
 def route(path, methods=["GET"]):
     def route_decorator(route_func):
@@ -88,12 +89,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 with open(file_path, "rb") as file:
                     file_data = file.read()
                     mime_type = get_mime_type(file.name)
-                    response_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
-                    headers = {
-                        "Date": response_date,
+                    headers = { 
                         "Content-Type": mime_type, 
                         "Content-Length": len(file_data)
-                    }   
+                    }                    
                     response = make_http_response(headers, file_data, "200 OK")
                     conn.sendall(response)
             except FileNotFoundError:
