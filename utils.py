@@ -30,3 +30,24 @@ def headers_str_to_dict(headers_string):
     headers_dict = {header.split(": ", 1)[0]: header.split(": ", 1)[1] for header in headers}
 
     return headers_dict
+
+def get_parameters_from_path(req_path):
+    if "?" not in req_path:
+        return req_path, {}
+
+    path, params_string = req_path.split("?")
+
+    if "#" in params_string:
+        params_string = params_string.split("#")[0]
+
+    params_list = params_string.split("&")
+    params_dict = {}
+    for param in params_list:
+        if len(param.split("=")) == 1:
+            params_dict[param] = True
+            continue
+
+        key, value = param.split("=")
+        params_dict[key] = value
+
+    return path, params_dict

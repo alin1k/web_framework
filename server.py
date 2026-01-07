@@ -1,13 +1,11 @@
 import socket
 import os
-from utils import headers_str_to_dict, get_mime_type, http_response
+from utils import headers_str_to_dict, get_mime_type, http_response, get_parameters_from_path
+
 
 class HttpServer:
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     path_map = {}
-
-    def __init__(self):
-        pass
 
     @staticmethod
     def send(body, **options):
@@ -50,19 +48,21 @@ class HttpServer:
                     data = data.decode("utf-8")
                     print(data)
 
-                    req_start_line = data.split("\r\n")[0].split(" ")
+                    req_start_line = data.split("\r\n", 1)[0].split(" ")
 
                     req_method = req_start_line[0]
                     req_path = req_start_line[1]
+
+                    path, params = get_parameters_from_path(req_path)
                     req_headers = headers_str_to_dict(data.split("\r\n", 1)[1].split("\r\n\r\n")[0])
 
                     try:
-                        if self.path_map.get(req_path, False):
-                            response = self.path_map[req_path][req_method]()
+                        if self.path_map.get(path, False):
+                            response = self.path_map[path][req_method](request={"params": params, "headers": req_headers})
                         else:
-                            response = self.send_file(req_path, **req_headers)
+                            response = self.send_file(path, **req_headers)
                     except Exception as e:
-                        print(f"\n\nAn error occurred [{req_path}]:", e, "\n\n")
+                        print(f"\n\nAn error occurred [{path}]:", e, "\n\n")
                         response = self.send("Internal server error", status=500)
 
                     conn.sendall(response)
